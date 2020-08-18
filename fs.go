@@ -11,45 +11,51 @@ type AssetFn func(name string) ([]byte, error)
 type AssetInfoFn func(name string) (os.FileInfo, error)
 type AssetDirFn func(name string) ([]string, error)
 
-func writeAssetFile(fs afero.Fs, assetFn AssetFn, assetInfoFn AssetInfoFn, filePath string) error {
-	data, err := assetFn(filePath)
+func writeAssetFile(fs afero.Fs, assetFn AssetFn, assetInfoFn AssetInfoFn, targetBaseDir, srcBaseDir, filePath string) error {
+	srcFilePath := filepath.Join(srcBaseDir, filePath)
+	targetFilePath := filepath.Join(targetBaseDir, filePath)
+	data, err := assetFn(srcFilePath)
 	if err != nil {
 		return err
 	}
-	info, err := assetInfoFn(filePath)
+	info, err := assetInfoFn(srcFilePath)
 	if err != nil {
 		return err
 	}
-	err = afero.WriteFile(fs, filePath, data, info.Mode())
+	err = afero.WriteFile(fs, targetFilePath, data, info.Mode())
 	if err != nil {
 		return err
 	}
-	return fs.Chtimes(filePath, info.ModTime(), info.ModTime())
+	return fs.Chtimes(targetFilePath, info.ModTime(), info.ModTime())
 }
 
-func writeAssetsInDirectory(fs afero.Fs, assetFn AssetFn, assetInfoFn AssetInfoFn, assetDirFn AssetDirFn, dirPath string) error {
-	children, err := assetDirFn(dirPath)
+// WriteAssetsInDirectory writes assets in `dirPath` to a afero.Fs directory `targetBaseDir`.
+func WriteAssetsInDirectory(fs afero.Fs, assetFn AssetFn, assetInfoFn AssetInfoFn, assetDirFn AssetDirFn, targetBaseDir, srcBaseDir, dirPath string) error {
+	srcDirPath := filepath.Join(srcBaseDir, dirPath)
+	targetDirPath := filepath.Join(targetBaseDir, dirPath)
+
+	children, err := assetDirFn(srcDirPath)
 	if err != nil {
 		// Should not happen, dirPath must exist
 		panic(err)
 	}
 
-	if dirPath != "" {
-		if err = fs.MkdirAll(dirPath, os.FileMode(0755)); err != nil {
+	if targetDirPath != "" {
+		if err = fs.MkdirAll(targetDirPath, os.FileMode(0755)); err != nil {
 			return err
 		}
 	}
 
 	for _, child := range children {
 		path := filepath.Join(dirPath, child)
-		if _, err := assetDirFn(path); err == nil {
+		if _, err := assetDirFn(filepath.Join(srcBaseDir, path)); err == nil {
 			// This is a directory
-			if err := writeAssetsInDirectory(fs, assetFn, assetInfoFn, assetDirFn, path); err != nil {
+			if err := WriteAssetsInDirectory(fs, assetFn, assetInfoFn, assetDirFn, targetBaseDir, srcBaseDir, path); err != nil {
 				return err
 			}
 		} else {
 			// This is a file
-			if err := writeAssetFile(fs, assetFn, assetInfoFn, path); err != nil {
+			if err := writeAssetFile(fs, assetFn, assetInfoFn, targetBaseDir, srcBaseDir, path); err != nil {
 				return err
 			}
 		}
@@ -61,7 +67,7 @@ func writeAssetsInDirectory(fs afero.Fs, assetFn AssetFn, assetInfoFn AssetInfoF
 // NewBindataFs creates a afero.Fs using specified assets. Errors may be returned.
 func NewBindataFs(assetFn AssetFn, assetInfoFn AssetInfoFn, assetDirFn AssetDirFn) (afero.Fs, error) {
 	fs := afero.NewMemMapFs()
-	if err := writeAssetsInDirectory(fs, assetFn, assetInfoFn, assetDirFn, ""); err != nil {
+	if err := WriteAssetsInDirectory(fs, assetFn, assetInfoFn, assetDirFn, "", "", ""); err != nil {
 		return nil, err
 	}
 	return fs, nil

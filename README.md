@@ -7,3 +7,5 @@ A bridge between [go-bindata](https://github.com/go-bindata/go-bindata) and [Afe
 ```go
 fs := bindataafero.MustNewBindataFs(Asset, AssetInfo, AssetDir)
 ```
+
+You can also write assets to an existing Afero FS, see [`fs_test.go`](./fs_test.go) for details.
