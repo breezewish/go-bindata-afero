@@ -5,5 +5,5 @@ A bridge between [go-bindata](https://github.com/go-bindata/go-bindata) and [Afe
 ## Usage
 
 ```go
-fs, err := NewBindataFs(Asset, AssetInfo, AssetDir)
+fs := bindataafero.MustNewBindataFs(Asset, AssetInfo, AssetDir)
 ```

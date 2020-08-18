@@ -27,7 +27,7 @@ func walk(t *testing.T, fs afero.Fs, root string) string {
 	return strings.TrimSpace(walked)
 }
 
-func TestOpenFile(t *testing.T) {
+func TestNew(t *testing.T) {
 	fs, err := NewBindataFs(Asset, AssetInfo, AssetDir)
 	assert.Nil(t, err)
 

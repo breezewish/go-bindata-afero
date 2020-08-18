@@ -58,11 +58,20 @@ func writeAssetsInDirectory(fs afero.Fs, assetFn AssetFn, assetInfoFn AssetInfoF
 	return nil
 }
 
-// NewBindataFs creates a afero.Fs using specified assets.
+// NewBindataFs creates a afero.Fs using specified assets. Errors may be returned.
 func NewBindataFs(assetFn AssetFn, assetInfoFn AssetInfoFn, assetDirFn AssetDirFn) (afero.Fs, error) {
 	fs := afero.NewMemMapFs()
 	if err := writeAssetsInDirectory(fs, assetFn, assetInfoFn, assetDirFn, ""); err != nil {
 		return nil, err
 	}
 	return fs, nil
+}
+
+// MustNewBindataFs creates a afero.Fs using specified assets. Errors will lead to panic.
+func MustNewBindataFs(assetFn AssetFn, assetInfoFn AssetInfoFn, assetDirFn AssetDirFn) afero.Fs {
+	fs, err := NewBindataFs(assetFn, assetInfoFn, assetDirFn)
+	if err != nil {
+		panic(err)
+	}
+	return fs
 }
